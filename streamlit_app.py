@@ -1,54 +1,161 @@
-import streamlit as st
+import pygame
+import sys
+import time
 
 # -------------------------------
-# 앱 제목
+# 초기화
 # -------------------------------
-st.title("MBTI 학습 유형 진단")
+pygame.init()
+
+# 화면 설정
+WIDTH, HEIGHT = 600, 400
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Click Tycoon")
+
+clock = pygame.time.Clock()
+FPS = 60
+
+# 색상
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+BLACK = (0, 0, 0)
+GRAY = (128, 128, 128)
+RAINBOW = [(255,0,0),(255,127,0),(255,255,0),(0,255,0),(0,0,255),(75,0,130),(148,0,211)]
 
 # -------------------------------
-# 세션 상태 초기화
+# 게임 변수
 # -------------------------------
-if 'answers' not in st.session_state:
-    st.session_state['answers'] = {}
+gold = 0
+click_value = 1
+GOAL = 99999
+game_over = False
 
-# -------------------------------
-# MBTI 질문과 선택지
-# -------------------------------
-questions = {
-    "Q1. 학습할 때 새로운 것을 시도하는 것을 좋아한다.": ["그렇다", "보통", "그렇지 않다"],
-    "Q2. 계획을 세우고 체계적으로 학습하는 편이다.": ["그렇다", "보통", "그렇지 않다"],
-    "Q3. 시각적 자료를 활용하면 이해가 쉽다.": ["그렇다", "보통", "그렇지 않다"],
-    "Q4. 학습 중 토론이나 대화를 통해 이해가 깊어진다.": ["그렇다", "보통", "그렇지 않다"],
-    "Q5. 학습 중 직관을 믿고 결정을 내리는 편이다.": ["그렇다", "보통", "그렇지 않다"],
-    "Q6. 실습이나 경험을 통해 학습하는 것이 효과적이다.": ["그렇다", "보통", "그렇지 않다"]
+# 상점 상태
+shop = {
+    "auto1": False,   # 100골드, 5초 1골드
+    "auto2": False,   # 300골드, 8초 4골드
+    "party": False,   # 500골드, 클릭 3배, 쿨타임 20초, 활성 7초
+    "auto3": False,   # 1000골드, 5초 30골드
+    "auto4": False    # 5000골드, 4초 50골드
 }
 
-# -------------------------------
-# 질문 표시
-# -------------------------------
-for q, options in questions.items():
-    st.session_state['answers'][q] = st.radio(q, options, key=q)
+# 시간 추적
+last_auto1 = time.time()
+last_auto2 = time.time()
+last_auto3 = time.time()
+last_auto4 = time.time()
+party_last_used = -20
+party_active_until = 0
+
+# 클릭 버튼
+click_btn = pygame.Rect(WIDTH//2-15, HEIGHT//2-15, 30, 30)
+
+# 상점 버튼
+shop_buttons = {
+    "100": pygame.Rect(50, 50, 100, 30),
+    "300": pygame.Rect(50, 90, 100, 30),
+    "500": pygame.Rect(50, 130, 100, 30),
+    "1000": pygame.Rect(50, 170, 100, 30),
+    "5000": pygame.Rect(50, 210, 100, 30)
+}
+
+font = pygame.font.SysFont(None, 24)
 
 # -------------------------------
-# 제출 버튼
+# 게임 루프
 # -------------------------------
-if st.button("제출"):
-    # 간단 MBTI 계산 로직 예시 (실제 MBTI 심화 로직 아님)
-    # '그렇다' 선택 개수로 간단 유형 결정
-    score = sum(1 for ans in st.session_state['answers'].values() if ans == "그렇다")
-
-    if score >= 5:
-        mbti_type = "ENTJ"
-        learning_type = "계획적이며 도전적인 학습자"
-    elif score >= 3:
-        mbti_type = "INFP"
-        learning_type = "자기 주도적이며 감성적인 학습자"
-    else:
-        mbti_type = "ISFJ"
-        learning_type = "신중하고 체계적인 학습자"
-
-    st.subheader("결과")
-    st.write(f"**MBTI 유형:** {mbti_type}")
-    st.write(f"**학습 유형 설명:** {learning_type}")
+running = True
+while running:
+    clock.tick(FPS)
+    current_time = time.time()
     
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
 
+        # 클릭 처리
+        if event.type == pygame.MOUSEBUTTONDOWN and not game_over:
+            if click_btn.collidepoint(event.pos):
+                if shop["party"] and current_time <= party_active_until:
+                    gold += click_value*3
+                else:
+                    gold += click_value
+                if gold >= GOAL:
+                    gold = GOAL
+                    game_over = True
+
+            # 상점 버튼 클릭
+            if shop_buttons["100"].collidepoint(event.pos) and gold >= 100:
+                gold -= 100
+                shop = {"auto1": True, "auto2": False, "party": False, "auto3": False, "auto4": False}
+            if shop_buttons["300"].collidepoint(event.pos) and gold >= 300:
+                gold -= 300
+                shop = {"auto1": False, "auto2": True, "party": False, "auto3": False, "auto4": False}
+            if shop_buttons["500"].collidepoint(event.pos) and gold >= 500:
+                gold -= 500
+                shop = {"auto1": False, "auto2": False, "party": True, "auto3": False, "auto4": False}
+                party_last_used = current_time
+                party_active_until = current_time + 7
+            if shop_buttons["1000"].collidepoint(event.pos) and gold >= 1000:
+                gold -= 1000
+                shop = {"auto1": False, "auto2": False, "party": False, "auto3": True, "auto4": False}
+            if shop_buttons["5000"].collidepoint(event.pos) and gold >= 5000:
+                gold -= 5000
+                shop = {"auto1": False, "auto2": False, "party": False, "auto3": False, "auto4": True}
+
+    # -------------------------------
+    # 자동 골드
+    # -------------------------------
+    if not game_over:
+        if shop["auto1"] and current_time - last_auto1 >= 5:
+            gold += 1
+            last_auto1 = current_time
+        if shop["auto2"] and current_time - last_auto2 >= 8:
+            gold += 4
+            last_auto2 = current_time
+        if shop["auto3"] and current_time - last_auto3 >= 5:
+            gold += 30
+            last_auto3 = current_time
+        if shop["auto4"] and current_time - last_auto4 >= 4:
+            gold += 50
+            last_auto4 = current_time
+        if shop["party"] and current_time - party_last_used >= 20:
+            party_last_used = current_time
+            party_active_until = current_time + 7
+        if gold >= GOAL:
+            gold = GOAL
+            game_over = True
+
+    # -------------------------------
+    # 화면 그리기
+    # -------------------------------
+    screen.fill(WHITE)
+
+    # 클릭 버튼
+    if shop["party"] and current_time <= party_active_until:
+        color_idx = int((current_time*10)%7)
+        pygame.draw.ellipse(screen, RAINBOW[color_idx], click_btn)
+    elif game_over:
+        pygame.draw.ellipse(screen, GRAY, click_btn)
+    else:
+        pygame.draw.ellipse(screen, RED, click_btn)
+
+    # 상점 버튼
+    for key, rect in shop_buttons.items():
+        pygame.draw.rect(screen, BLACK, rect)
+        text = font.render(f"{key} 골드", True, WHITE)
+        screen.blit(text, (rect.x+5, rect.y+5))
+
+    # 골드 표시
+    gold_text = font.render(f"Gold: {gold}", True, BLACK)
+    screen.blit(gold_text, (WIDTH-150, 50))
+
+    # 목표 달성 메시지
+    if game_over:
+        msg = font.render("축하합니다! 목표 99999 골드 달성!", True, RED)
+        screen.blit(msg, (WIDTH//2 - msg.get_width()//2, HEIGHT//2 - 50))
+
+    pygame.display.flip()
+
+pygame.quit()
+sys.exit()
