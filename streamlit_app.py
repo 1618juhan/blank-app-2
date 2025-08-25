@@ -2,11 +2,13 @@ import streamlit as st
 import time
 
 # -------------------------------
-# 초기화
+# 페이지 설정
 # -------------------------------
 st.set_page_config(page_title="Click Tycoon", page_icon="💰")
 
+# -------------------------------
 # 세션 상태 초기화
+# -------------------------------
 if 'gold' not in st.session_state:
     st.session_state.gold = 0
 if 'click_value' not in st.session_state:
@@ -54,17 +56,18 @@ def auto_gold():
         st.session_state.gold = GOAL
         st.session_state.game_over = True
 
+auto_gold()  # 클릭 전에도 오토 골드 갱신
+
 # -------------------------------
-# 자동 갱신
+# 1초마다 자동 새로고침
 # -------------------------------
-st_autorefresh = st.experimental_data_editor  # placeholder
+from streamlit_autorefresh import st_autorefresh
+st_autorefresh(interval=1000, key="auto_refresh")  # 1000ms = 1초
 
 # -------------------------------
 # 게임 화면
 # -------------------------------
 st.title("Click Tycoon 💰")
-
-auto_gold()  # 클릭 전에도 오토 골드 갱신
 st.write(f"Gold: {st.session_state.gold}")
 
 # 클릭 버튼
