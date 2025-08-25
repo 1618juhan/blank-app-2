@@ -55,63 +55,75 @@ def auto_gold():
         st.session_state.game_over = True
 
 # -------------------------------
-# 화면 구성
+# 자동 갱신
+# -------------------------------
+st_autorefresh = st.experimental_data_editor  # placeholder
+
+# -------------------------------
+# 게임 화면
 # -------------------------------
 st.title("Click Tycoon 💰")
 
-# 1초마다 자동 갱신
-placeholder = st.empty()
-while not st.session_state.game_over:
-    auto_gold()
-    
-    with placeholder.container():
-        st.write(f"Gold: {st.session_state.gold}")
-        
-        # 클릭 버튼
-        if st.button("Click!"):
-            current_time = time.time()
-            if st.session_state.shop["party"] and current_time <= st.session_state.party_active_until:
-                st.session_state.gold += st.session_state.click_value*3
-            else:
-                st.session_state.gold += st.session_state.click_value
-            if st.session_state.gold >= GOAL:
-                st.session_state.gold = GOAL
-                st.session_state.game_over = True
-        
-        # 상점 버튼
-        st.subheader("상점")
-        col1, col2, col3, col4, col5 = st.columns(5)
-        with col1:
-            if st.button("100골드 Auto1"):
-                if st.session_state.gold >= 100:
-                    st.session_state.gold -= 100
-                    st.session_state.shop["auto1"] = True
-        with col2:
-            if st.button("300골드 Auto2"):
-                if st.session_state.gold >= 300:
-                    st.session_state.gold -= 300
-                    st.session_state.shop["auto2"] = True
-        with col3:
-            if st.button("500골드 Party"):
-                if st.session_state.gold >= 500:
-                    st.session_state.gold -= 500
-                    st.session_state.shop["party"] = True
-                    st.session_state.party_last_used = time.time()
-                    st.session_state.party_active_until = time.time() + 7
-        with col4:
-            if st.button("1000골드 Auto3"):
-                if st.session_state.gold >= 1000:
-                    st.session_state.gold -= 1000
-                    st.session_state.shop["auto3"] = True
-        with col5:
-            if st.button("5000골드 Auto4"):
-                if st.session_state.gold >= 5000:
-                    st.session_state.gold -= 5000
-                    st.session_state.shop["auto4"] = True
-    
-    # 목표 달성 체크
-    if st.session_state.game_over:
-        st.success("축하합니다! 목표 99999 골드 달성!")
-        break
-    
-    time.sleep(1)
+auto_gold()  # 클릭 전에도 오토 골드 갱신
+st.write(f"Gold: {st.session_state.gold}")
+
+# 클릭 버튼
+if st.session_state.game_over:
+    st.button("게임 종료!", disabled=True, key="game_over_btn")
+else:
+    if st.button("Click!", key="click_btn"):
+        current_time = time.time()
+        auto_gold()
+        if st.session_state.shop["party"] and current_time <= st.session_state.party_active_until:
+            st.session_state.gold += st.session_state.click_value*3
+        else:
+            st.session_state.gold += st.session_state.click_value
+        if st.session_state.gold >= GOAL:
+            st.session_state.gold = GOAL
+            st.session_state.game_over = True
+        st.experimental_rerun()
+
+# -------------------------------
+# 상점 버튼
+# -------------------------------
+st.subheader("상점")
+col1, col2, col3, col4, col5 = st.columns(5)
+
+with col1:
+    if st.button("100골드 Auto1", key="auto1_btn"):
+        if st.session_state.gold >= 100:
+            st.session_state.gold -= 100
+            st.session_state.shop["auto1"] = True
+            st.experimental_rerun()
+with col2:
+    if st.button("300골드 Auto2", key="auto2_btn"):
+        if st.session_state.gold >= 300:
+            st.session_state.gold -= 300
+            st.session_state.shop["auto2"] = True
+            st.experimental_rerun()
+with col3:
+    if st.button("500골드 Party", key="party_btn"):
+        if st.session_state.gold >= 500:
+            st.session_state.gold -= 500
+            st.session_state.shop["party"] = True
+            st.session_state.party_last_used = time.time()
+            st.session_state.party_active_until = time.time() + 7
+            st.experimental_rerun()
+with col4:
+    if st.button("1000골드 Auto3", key="auto3_btn"):
+        if st.session_state.gold >= 1000:
+            st.session_state.gold -= 1000
+            st.session_state.shop["auto3"] = True
+            st.experimental_rerun()
+with col5:
+    if st.button("5000골드 Auto4", key="auto4_btn"):
+        if st.session_state.gold >= 5000:
+            st.session_state.gold -= 5000
+            st.session_state.shop["auto4"] = True
+            st.experimental_rerun()
+
+# -------------------------------
+# 목표 달성 메시지
+# -------------------------------
+if st.session_state.game_over:
+    st.success("축하합니다! 목표 99999 골드 달성!")
